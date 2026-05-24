@@ -267,6 +267,7 @@ function toResultItem(item, post, type) {
     type,
     date: item.reg_date || "",
     comment: stripHtml(item.comment || ""),
+    profileImage: normalizeProfileImage(item.profile_image),
     link: `${post.canonicalPostUrl}#${anchor}`,
   };
 }
@@ -296,6 +297,18 @@ function renderResults(results) {
     row.querySelector("[data-field='comment']").textContent = result.comment;
     row.querySelector("[data-field='link']").href = result.link;
     row.querySelector("[data-field='copy']").dataset.copyLink = result.link;
+
+    const avatar = row.querySelector("[data-field='avatar']");
+    if (result.profileImage) {
+      avatar.src = result.profileImage;
+      avatar.alt = `${result.author} 프로필 이미지`;
+      avatar.addEventListener("error", () => {
+        avatar.hidden = true;
+      }, { once: true });
+    } else {
+      avatar.hidden = true;
+    }
+
     fragment.append(row);
   }
 
@@ -368,6 +381,28 @@ function normalize(value) {
   return String(value || "")
     .trim()
     .toLocaleLowerCase("ko-KR");
+}
+
+function normalizeProfileImage(value) {
+  const imageUrl = String(value || "").trim();
+
+  if (!imageUrl) {
+    return "";
+  }
+
+  if (imageUrl.startsWith("//")) {
+    return `https:${imageUrl}`;
+  }
+
+  if (imageUrl.startsWith("http://")) {
+    return imageUrl.replace("http://", "https://");
+  }
+
+  if (imageUrl.startsWith("https://")) {
+    return imageUrl;
+  }
+
+  return "";
 }
 
 function stripHtml(value) {

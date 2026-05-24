@@ -462,6 +462,27 @@ button:focus-visible {
   background: var(--result-item-bg);
 }
 
+.result-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.result-avatar {
+  flex: 0 0 auto;
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--result-line);
+  border-radius: 50%;
+  background: var(--result-bg);
+  object-fit: cover;
+}
+
+.result-body {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .result-meta {
   gap: 8px;
   flex-wrap: wrap;
@@ -588,5 +609,14 @@ button:focus-visible {
   .result-item a,
   .copy-button {
     flex: 1 1 100%;
+  }
+
+  .result-content {
+    gap: 10px;
+  }
+
+  .result-avatar {
+    width: 44px;
+    height: 44px;
   }
 }
