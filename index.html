@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#17191d" />
+    <title>천타버스 댓글 검색기</title>
+    <script>
+      (() => {
+        try {
+          const saved = localStorage.getItem("chuntaverse-theme");
+          document.documentElement.dataset.theme =
+            saved === "light" || saved === "dark" ? saved : "dark";
+        } catch {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="brand-header" aria-label="천타버스">
+        <img
+          class="brand-logo brand-logo-light"
+          src="./assets/logo-1-black@2x.png"
+          alt="CHUNTAVERSE"
+        />
+        <img
+          class="brand-logo brand-logo-dark"
+          src="./assets/logo-1-white@2x.png"
+          alt=""
+          aria-hidden="true"
+        />
+      </header>
+
+      <div class="utility-bar" aria-label="화면 설정">
+        <label class="theme-switch" for="themeToggle">
+          <span class="theme-label" id="themeLabel">다크 모드</span>
+          <input
+            id="themeToggle"
+            type="checkbox"
+            role="switch"
+            aria-label="다크 모드 전환"
+          />
+          <span class="theme-track" aria-hidden="true">
+            <span class="theme-thumb"></span>
+          </span>
+        </label>
+      </div>
+
+      <section class="search-panel" aria-labelledby="page-title">
+        <div class="title-row">
+          <div>
+            <p class="eyebrow">SOOP 게시글</p>
+            <h1 id="page-title">댓글 검색기</h1>
+          </div>
+          <span class="status-pill" id="serviceStatus">대기</span>
+        </div>
+
+        <form id="searchForm" class="search-form">
+          <label class="field">
+            <span>게시글 주소</span>
+            <input
+              id="postUrl"
+              name="postUrl"
+              type="url"
+              inputmode="url"
+              autocomplete="url"
+              placeholder="SOOP 게시글 URL"
+              required
+            />
+          </label>
+
+          <label class="field">
+            <span>작성자 아이디 또는 닉네임</span>
+            <input
+              id="keyword"
+              name="keyword"
+              type="text"
+              autocomplete="off"
+              placeholder="검색어"
+              required
+            />
+          </label>
+
+          <div class="form-options">
+            <label class="check-row">
+              <input id="includeReplies" type="checkbox" checked />
+              <span>답글 포함</span>
+            </label>
+
+            <button class="primary-button" type="submit">
+              <span aria-hidden="true">⌕</span>
+              검색
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="result-panel" aria-live="polite">
+        <div class="result-toolbar">
+          <h2>검색 결과</h2>
+          <button class="ghost-button" id="clearButton" type="button">초기화</button>
+        </div>
+
+        <div class="summary-grid" id="summaryGrid" hidden>
+          <div>
+            <span>확인한 댓글</span>
+            <strong id="totalComments">0</strong>
+          </div>
+          <div>
+            <span>검색 일치</span>
+            <strong id="matchedComments">0</strong>
+          </div>
+          <div>
+            <span>확인한 페이지</span>
+            <strong id="checkedPages">0</strong>
+          </div>
+        </div>
+
+        <div class="empty-state" id="emptyState">
+          <p>게시글 주소와 작성자를 입력하면 결과가 여기에 표시됩니다.</p>
+        </div>
+
+        <ol class="result-list" id="resultList"></ol>
+      </section>
+    </main>
+
+    <template id="resultTemplate">
+      <li class="result-item">
+        <div class="result-meta">
+          <strong data-field="author"></strong>
+          <span data-field="type"></span>
+          <time data-field="date"></time>
+        </div>
+        <p data-field="comment"></p>
+        <div class="result-actions">
+          <a data-field="link" target="_blank" rel="noreferrer">댓글 'UP' 누르러 가기 (클릭)</a>
+          <button
+            class="copy-button"
+            data-field="copy"
+            type="button"
+            aria-label="하이라이트 댓글 링크 복사"
+          >
+            링크 복사
+          </button>
+        </div>
+      </li>
+    </template>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>
