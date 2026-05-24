@@ -267,7 +267,7 @@ function toResultItem(item, post, type) {
     type,
     date: item.reg_date || "",
     comment: stripHtml(item.comment || ""),
-    profileImage: normalizeProfileImage(item.profile_image),
+    profileImages: profileImageCandidates(item),
     link: `${post.canonicalPostUrl}#${anchor}`,
   };
 }
@@ -299,12 +299,19 @@ function renderResults(results) {
     row.querySelector("[data-field='copy']").dataset.copyLink = result.link;
 
     const avatar = row.querySelector("[data-field='avatar']");
-    if (result.profileImage) {
-      avatar.src = result.profileImage;
+    if (result.profileImages.length > 0) {
+      let imageIndex = 0;
+      avatar.src = result.profileImages[imageIndex];
       avatar.alt = `${result.author} 프로필 이미지`;
       avatar.addEventListener("error", () => {
+        imageIndex += 1;
+        if (result.profileImages[imageIndex]) {
+          avatar.src = result.profileImages[imageIndex];
+          return;
+        }
+
         avatar.hidden = true;
-      }, { once: true });
+      });
     } else {
       avatar.hidden = true;
     }
@@ -383,6 +390,16 @@ function normalize(value) {
     .toLocaleLowerCase("ko-KR");
 }
 
+function profileImageCandidates(item) {
+  const userId = String(item.user_id || "").trim();
+  const candidates = [
+    normalizeProfileImage(item.profile_image),
+    profileImageFromUserId(userId),
+  ].filter(Boolean);
+
+  return [...new Set(candidates)];
+}
+
 function normalizeProfileImage(value) {
   const imageUrl = String(value || "").trim();
 
@@ -403,6 +420,23 @@ function normalizeProfileImage(value) {
   }
 
   return "";
+}
+
+function profileImageFromUserId(userId) {
+  if (!userId) {
+    return "";
+  }
+
+  const normalizedId = userId.toLowerCase();
+  const prefix = normalizedId.slice(0, 2);
+
+  if (prefix.length < 2) {
+    return "";
+  }
+
+  return `https://profile.img.sooplive.co.kr/LOGO/${prefix}/${encodeURIComponent(
+    normalizedId,
+  )}/${encodeURIComponent(normalizedId)}.jpg`;
 }
 
 function stripHtml(value) {
