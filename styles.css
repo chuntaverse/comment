@@ -292,26 +292,35 @@ h2 {
 
 .preset-button {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  justify-self: start;
-  gap: 12px;
-  max-width: 100%;
-  min-height: 70px;
-  padding: 8px 14px 8px 8px;
+  justify-content: center;
+  justify-self: center;
+  gap: 10px;
+  width: min(100%, 380px);
+  min-height: 196px;
+  padding: 12px;
   border: 1px solid var(--panel-line);
   border-radius: 8px;
   background: var(--panel-bg-strong);
   color: var(--panel-text);
   cursor: pointer;
   font-weight: 900;
+  text-align: center;
 }
 
 .preset-button img {
-  width: 92px;
-  height: 54px;
+  width: 100%;
+  height: 148px;
   border-radius: 6px;
   object-fit: cover;
-  object-position: center;
+  object-position: center 50%;
+  box-shadow: inset 0 0 0 1px rgba(249, 249, 249, 0.08);
+}
+
+.preset-button span {
+  font-size: 1rem;
+  line-height: 1.2;
 }
 
 .preset-button:hover {
@@ -653,7 +662,11 @@ button:focus-visible {
 
   .preset-button {
     width: 100%;
-    justify-content: flex-start;
+    min-height: 176px;
+  }
+
+  .preset-button img {
+    height: 132px;
   }
 
   .title-row,
