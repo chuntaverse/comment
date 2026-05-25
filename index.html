@@ -16,7 +16,7 @@
         }
       })();
     </script>
-    <link rel="stylesheet" href="./styles.css?v=profile-20260524" />
+    <link rel="stylesheet" href="./styles.css?v=chaenna-20260526" />
   </head>
   <body>
     <main class="app-shell">
@@ -59,6 +59,16 @@
         </div>
 
         <form id="searchForm" class="search-form">
+          <button
+            class="preset-button"
+            id="chaennaPresetButton"
+            type="button"
+            aria-label="챈나룽 게시글 주소 입력"
+          >
+            <img src="./assets/chaenna-logo.png" alt="" aria-hidden="true" />
+            <span>챈나룽</span>
+          </button>
+
           <label class="field">
             <span>게시글 주소</span>
             <input
@@ -90,10 +100,15 @@
               <span>답글 포함</span>
             </label>
 
-            <button class="primary-button" type="submit">
-              <span aria-hidden="true">⌕</span>
-              검색
-            </button>
+            <div class="form-buttons">
+              <button class="secondary-button" id="fanBoardButton" type="button">
+                애청자 게시판 복사
+              </button>
+              <button class="primary-button" type="submit">
+                <span aria-hidden="true">⌕</span>
+                검색
+              </button>
+            </div>
           </div>
         </form>
       </section>
@@ -154,6 +169,6 @@
       </li>
     </template>
 
-    <script src="./app.js?v=profile-20260524" type="module"></script>
+    <script src="./app.js?v=chaenna-20260526" type="module"></script>
   </body>
 </html>

@@ -290,6 +290,41 @@ h2 {
   gap: 18px;
 }
 
+.preset-button {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 12px;
+  max-width: 100%;
+  min-height: 70px;
+  padding: 8px 14px 8px 8px;
+  border: 1px solid var(--panel-line);
+  border-radius: 8px;
+  background: var(--panel-bg-strong);
+  color: var(--panel-text);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.preset-button img {
+  width: 92px;
+  height: 54px;
+  border-radius: 6px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.preset-button:hover {
+  border-color: var(--aqua);
+  color: var(--aqua);
+}
+
+.preset-button.is-filled {
+  border-color: var(--aqua);
+  background: var(--aqua);
+  color: var(--night);
+}
+
 .field {
   display: grid;
   gap: 8px;
@@ -325,6 +360,14 @@ button:focus-visible {
   flex-wrap: wrap;
 }
 
+.form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+}
+
 .check-row {
   display: inline-flex;
   align-items: center;
@@ -341,6 +384,7 @@ button:focus-visible {
 }
 
 .primary-button,
+.secondary-button,
 .ghost-button {
   min-height: 44px;
   border-radius: 6px;
@@ -375,6 +419,24 @@ button:focus-visible {
 .primary-button:disabled {
   cursor: wait;
   opacity: 0.7;
+}
+
+.secondary-button {
+  padding: 0 14px;
+  background: transparent;
+  color: var(--panel-text);
+  border-color: var(--panel-line);
+}
+
+.secondary-button:hover {
+  border-color: var(--aqua);
+  color: var(--aqua);
+}
+
+.secondary-button.is-copied {
+  background: var(--aqua);
+  color: var(--night);
+  border-color: var(--aqua);
 }
 
 .result-panel {
@@ -589,6 +651,11 @@ button:focus-visible {
     padding: 18px;
   }
 
+  .preset-button {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .title-row,
   .result-toolbar {
     align-items: flex-start;
@@ -599,6 +666,14 @@ button:focus-visible {
   }
 
   .primary-button {
+    width: 100%;
+  }
+
+  .form-buttons {
+    width: 100%;
+  }
+
+  .secondary-button {
     width: 100%;
   }
 

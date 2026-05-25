@@ -1,6 +1,7 @@
 const API_ORIGIN = "https://bjapi.afreecatv.com";
 const MAX_COMMENT_PAGES = 30;
 const MAX_REPLY_PAGES = 15;
+const CHAENNA_POST_URL = "https://www.sooplive.com/station/chaenna02/post/196058089";
 
 const form = document.querySelector("#searchForm");
 const postUrlInput = document.querySelector("#postUrl");
@@ -15,6 +16,8 @@ const emptyState = document.querySelector("#emptyState");
 const resultList = document.querySelector("#resultList");
 const clearButton = document.querySelector("#clearButton");
 const resultTemplate = document.querySelector("#resultTemplate");
+const fanBoardButton = document.querySelector("#fanBoardButton");
+const chaennaPresetButton = document.querySelector("#chaennaPresetButton");
 const themeToggle = document.querySelector("#themeToggle");
 const themeLabel = document.querySelector("#themeLabel");
 const themeColorMeta = document.querySelector('meta[name="theme-color"]');
@@ -66,6 +69,51 @@ clearButton.addEventListener("click", () => {
   resetResults();
   setStatus("대기");
   postUrlInput.focus();
+});
+
+chaennaPresetButton?.addEventListener("click", () => {
+  postUrlInput.value = CHAENNA_POST_URL;
+  postUrlInput.dispatchEvent(new Event("input", { bubbles: true }));
+  showPresetState(chaennaPresetButton);
+  setStatus("입력됨");
+  keywordInput.focus();
+});
+
+fanBoardButton?.addEventListener("click", async () => {
+  const postUrl = postUrlInput.value.trim();
+  const keyword = keywordInput.value.trim();
+
+  if (!postUrl) {
+    setError("게시글 주소를 입력해 주세요.");
+    postUrlInput.focus();
+    return;
+  }
+
+  if (!keyword) {
+    setError("검색어를 입력해 주세요.");
+    keywordInput.focus();
+    return;
+  }
+
+  try {
+    parsePostUrl(postUrl);
+  } catch (error) {
+    setError(error.message);
+    postUrlInput.focus();
+    return;
+  }
+
+  try {
+    await copyText(buildFanBoardScript(postUrl, keyword, includeRepliesInput.checked));
+    showCopyState(fanBoardButton, "코드 복사됨");
+    setStatus("복사됨");
+    showMessage(
+      "애청자 게시판용 코드를 복사했습니다. SOOP 게시글 페이지에서 개발자 도구 Console에 붙여넣으면 댓글 링크를 선택해 복사할 수 있습니다.",
+    );
+  } catch {
+    showCopyState(fanBoardButton, "복사 실패");
+    setError("코드를 클립보드에 복사하지 못했습니다.");
+  }
 });
 
 resultList.addEventListener("click", async (event) => {
@@ -349,12 +397,307 @@ function showCopyState(button, label) {
   const originalLabel = button.dataset.originalLabel || button.textContent;
   button.dataset.originalLabel = originalLabel;
   button.textContent = label;
-  button.classList.toggle("is-copied", label === "복사됨");
+  button.classList.toggle("is-copied", label === "복사됨" || label === "코드 복사됨");
 
   window.setTimeout(() => {
     button.textContent = originalLabel;
     button.classList.remove("is-copied");
   }, 1400);
+}
+
+function showPresetState(button) {
+  const originalLabel = button.querySelector("span")?.textContent || "챈나룽";
+  button.classList.add("is-filled");
+
+  window.setTimeout(() => {
+    button.classList.remove("is-filled");
+    const label = button.querySelector("span");
+    if (label) {
+      label.textContent = originalLabel;
+    }
+  }, 900);
+}
+
+function buildFanBoardScript(postUrl, keyword, includeReplies) {
+  return `(${fanBoardConsoleRunner.toString()})(${JSON.stringify({
+    includeReplies,
+    keyword,
+    postUrl,
+  })});`;
+}
+
+function fanBoardConsoleRunner(config) {
+  const MAX_COMMENT_PAGES = 50;
+  const MAX_REPLY_PAGES = 20;
+  const API_ORIGIN = "https://chapi.sooplive.com/api";
+
+  const normalize = (value) =>
+    String(value || "")
+      .trim()
+      .toLocaleLowerCase("ko-KR");
+
+  const stripHtml = (value) => {
+    const element = document.createElement("div");
+    element.innerHTML = value || "";
+    return element.textContent || element.innerText || "";
+  };
+
+  const normalizeImage = (value) => {
+    const imageUrl = String(value || "").trim();
+    if (!imageUrl) return "";
+    if (imageUrl.startsWith("//")) return `https:${imageUrl}`;
+    if (imageUrl.startsWith("http://")) return imageUrl.replace("http://", "https://");
+    if (imageUrl.startsWith("https://")) return imageUrl;
+    return "";
+  };
+
+  const parsePost = (value) => {
+    const url = new URL(value, window.location.href);
+    const path = url.pathname.split("/").filter(Boolean);
+    let bjId = "";
+    let titleNo = "";
+
+    if (path[0] === "station" && path[1] && path[2] === "post" && path[3]) {
+      bjId = path[1];
+      titleNo = path[3].replace(/\D/g, "");
+    } else {
+      const postIndex = path.findIndex((part) => part.toLowerCase() === "post");
+      const titleIndex = path.findIndex((part) => part.toLowerCase() === "title");
+      const markerIndex = postIndex >= 0 ? postIndex : titleIndex;
+      bjId = markerIndex >= 1 ? path[markerIndex - 1] : "";
+      titleNo = markerIndex >= 0 && path[markerIndex + 1] ? path[markerIndex + 1].replace(/\D/g, "") : "";
+    }
+
+    if (!bjId || !titleNo) {
+      throw new Error("게시글 주소에서 방송국 아이디와 글 번호를 찾지 못했습니다.");
+    }
+
+    return {
+      bjId,
+      titleNo,
+      url: `https://ch.sooplive.co.kr/${encodeURIComponent(bjId)}/post/${titleNo}`,
+    };
+  };
+
+  const fetchJson = async (url) => {
+    const response = await fetch(url, {
+      credentials: "include",
+      headers: { Accept: "application/json" },
+    });
+    const payload = await response.json();
+
+    if (!response.ok || payload.code) {
+      throw new Error(payload.message || `댓글 API 응답 오류 (${response.status})`);
+    }
+
+    return payload;
+  };
+
+  const commentUrl = (post, page) => {
+    const url = new URL(
+      `${API_ORIGIN}/${encodeURIComponent(post.bjId)}/title/${post.titleNo}/comment`,
+    );
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("orderby", "reg_date");
+    url.searchParams.set("p_comment_no", "");
+    url.searchParams.set("c_comment_no", "");
+    url.searchParams.set("p_highlight_no", "");
+    url.searchParams.set("c_highlight_no", "");
+    return url.toString();
+  };
+
+  const replyUrl = (post, parentCommentNo, page) => {
+    const url = new URL(
+      `${API_ORIGIN}/${encodeURIComponent(post.bjId)}/title/${post.titleNo}/comment/${parentCommentNo}/reply`,
+    );
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("orderby", "reg_date");
+    return url.toString();
+  };
+
+  const matchesAuthor = (item, searchKeyword) => {
+    const userId = normalize(item.user_id);
+    const userNick = normalize(item.user_nick);
+    return userId.includes(searchKeyword) || userNick.includes(searchKeyword);
+  };
+
+  const copyText = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      window.prompt("아래 링크를 복사해 주세요.", text);
+    }
+  };
+
+  const closeExistingLayer = () => {
+    document.querySelector("#chuntaverseFanBoardLayer")?.remove();
+  };
+
+  const renderLayer = (matches) => {
+    closeExistingLayer();
+
+    if (matches.length === 0) {
+      alert("검색된 댓글이 없습니다.");
+      return;
+    }
+
+    const layer = document.createElement("div");
+    layer.id = "chuntaverseFanBoardLayer";
+    layer.style.cssText = [
+      "position:fixed",
+      "inset:24px",
+      "z-index:2147483647",
+      "padding:18px",
+      "overflow:auto",
+      "border:3px solid #61ffec",
+      "border-radius:8px",
+      "background:#17191d",
+      "color:#f9f9f9",
+      "box-shadow:0 24px 80px rgba(0,0,0,.45)",
+      "font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
+    ].join(";");
+
+    const header = document.createElement("div");
+    header.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;";
+
+    const title = document.createElement("strong");
+    title.textContent = `천타버스 댓글 검색 결과 (${matches.length})`;
+    title.style.cssText = "font-size:18px;";
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.textContent = "닫기";
+    closeButton.style.cssText =
+      "min-height:38px;padding:0 14px;border:1px solid #3f3f3f;border-radius:6px;background:#101216;color:#f9f9f9;font-weight:800;cursor:pointer;";
+    closeButton.addEventListener("click", closeExistingLayer);
+
+    header.append(title, closeButton);
+    layer.append(header);
+
+    const list = document.createElement("div");
+    list.style.cssText = "display:grid;gap:10px;";
+
+    for (const item of matches) {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.style.cssText = [
+        "display:grid",
+        "grid-template-columns:44px 1fr",
+        "gap:10px",
+        "width:100%",
+        "padding:12px",
+        "border:1px solid #3f3f3f",
+        "border-left:4px solid #61ffec",
+        "border-radius:8px",
+        "background:#101216",
+        "color:#f9f9f9",
+        "text-align:left",
+        "cursor:pointer",
+      ].join(";");
+
+      const avatar = document.createElement("img");
+      avatar.src = item.profileImage;
+      avatar.alt = "";
+      avatar.style.cssText = "width:44px;height:44px;border-radius:50%;object-fit:cover;background:#202328;";
+      avatar.addEventListener("error", () => {
+        avatar.style.display = "none";
+        row.style.gridTemplateColumns = "1fr";
+      });
+
+      const body = document.createElement("div");
+      const meta = document.createElement("div");
+      meta.textContent = `${item.author} · ${item.type} · ${item.date || ""}`;
+      meta.style.cssText = "margin-bottom:6px;color:#61ffec;font-weight:800;";
+
+      const comment = document.createElement("div");
+      comment.textContent = item.comment;
+      comment.style.cssText = "white-space:pre-wrap;line-height:1.55;";
+
+      const hint = document.createElement("div");
+      hint.textContent = "클릭하면 하이라이트 댓글 링크가 복사됩니다.";
+      hint.style.cssText = "margin-top:8px;color:rgba(249,249,249,.58);font-size:12px;";
+
+      body.append(meta, comment, hint);
+      row.append(avatar, body);
+      row.addEventListener("click", async () => {
+        await copyText(item.link);
+        row.style.borderColor = "#61ffec";
+        hint.textContent = "복사되었습니다.";
+      });
+
+      list.append(row);
+    }
+
+    layer.append(list);
+    document.body.append(layer);
+  };
+
+  const run = async () => {
+    const post = parsePost(config.postUrl);
+    const searchKeyword = normalize(config.keyword);
+    const matches = [];
+
+    const addMatch = (item, type) => {
+      const isReply = type === "답글";
+      matches.push({
+        author: `${item.user_nick || "이름 없음"} (${item.user_id || "-"})`,
+        comment: stripHtml(item.comment || ""),
+        date: item.reg_date || "",
+        link: `${post.url}#${isReply ? "reply_noti" : "comment_noti"}${isReply ? item.c_comment_no : item.p_comment_no}`,
+        profileImage: normalizeImage(item.profile_image),
+        type,
+      });
+    };
+
+    const firstPage = await fetchJson(commentUrl(post, 1));
+    const lastPage = Math.min(Number(firstPage.meta?.last_page || 1), MAX_COMMENT_PAGES);
+
+    const handleComments = async (comments) => {
+      for (const comment of comments) {
+        if (matchesAuthor(comment, searchKeyword)) {
+          addMatch(comment, "댓글");
+        }
+
+        if (config.includeReplies && Number(comment.c_comment_cnt) > 0) {
+          let replyPage = 1;
+          let replyLastPage = 1;
+
+          do {
+            const repliesPayload = await fetchJson(replyUrl(post, comment.p_comment_no, replyPage));
+            replyLastPage = Math.min(Number(repliesPayload.meta?.last_page || 1), MAX_REPLY_PAGES);
+
+            for (const reply of repliesPayload.data || []) {
+              if (matchesAuthor(reply, searchKeyword)) {
+                addMatch(reply, "답글");
+              }
+            }
+
+            replyPage += 1;
+          } while (replyPage <= replyLastPage);
+        }
+      }
+    };
+
+    await handleComments(firstPage.data || []);
+
+    for (let page = 2; page <= lastPage; page += 1) {
+      const payload = await fetchJson(commentUrl(post, page));
+      await handleComments(payload.data || []);
+    }
+
+    renderLayer(matches);
+  };
+
+  run().catch((error) => {
+    alert(`애청자 게시판 댓글 검색을 완료하지 못했습니다.\n${error.message || error}`);
+  });
+}
+
+function showMessage(message) {
+  resultList.replaceChildren();
+  summaryGrid.hidden = true;
+  emptyState.hidden = false;
+  emptyState.querySelector("p").textContent = message;
 }
 
 function resetResults() {
